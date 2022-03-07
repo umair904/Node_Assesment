@@ -55,20 +55,26 @@ const maxRouteLength = 8046 + (8046 * 0.3);
 const calculations = {
   customersRemaining: destinationAddresses.length,
 };
+// SOME VARIABLES TO USE IN BETWEEN THE FUNCTIONALITY AND AN ARRAY TO STORE AND DISPLAY THE FINAL RESULTS 
 var sdis, stext, prev, prevc, nindex ;
 var cindex = 0;
 var totalDistance = 0 ;
 var finalSol = [];
 
-
+// EXPRESS ROUTER TO PERFORM THE DESIRED FUNCTIONALITY 
 router.get('/viewPaths', function(req, res){
+  // CREATION OF THE OBJECT FOR STORAGE PURPOSE
   var obj = {
     totalLength: Number,
     route:[]
   }
+
+  // LOOP TO PERFORM THE FUNCTIONALTY UNTIL ALL THE CUSTOMERS ARE ENTERTAINED 
   while(calculations.customersRemaining > 0){
     prev = cindex;
     sdis = data.rows[cindex].elements[0].distance.value;
+
+    // LOOP TO FIND THE SHORTEST PATH FROM PREVIOUS DESTINATION 
     for (var i=0 ; i<data.rows[cindex].elements.length-1 ; i++){
       if(data.rows[cindex].elements[i].distance.value>=data.rows[cindex].elements[i+1].distance.value && i+1 != cindex-1){
           sdis = data.rows[cindex].elements[i+1].distance.value;
@@ -93,16 +99,19 @@ router.get('/viewPaths', function(req, res){
           nindex = i+1;
       }
     }
+    // CALCULATION OF THE TOTAL DISTANCE TO CHECK THE MAXIMUM LIMIT OF ROUTE
    totalDistance = totalDistance + sdis;
     cindex=nindex;
+    // OBJECT TO STORE THE DETAIL OF EVERY SINGLE PATH 
     var innerObj = {
     customer: String,
     deliveryCharges: Number,
     path: String
    }
     calculations.customersRemaining--;
+    //CHECKING IF THE TOTAL DISTANCE EXCEEDS THE MAXMIUM LIMIT OR NOT
    if (totalDistance<= maxRouteLength){
-      
+      // CHECKING THE DETAIL OF THE NEW CUSTOMER/DESTINATION
       if (cindex==1){
         innerObj.customer="customerA";
       }
@@ -115,6 +124,7 @@ router.get('/viewPaths', function(req, res){
       if (cindex==4){
         innerObj.customer="customerD";
       }
+      // CHECKING THE DETAIL OF THE PREVIOUS CUSTOMER/DESTINATION
       if (prev==0){
         prevc="store";
       }
@@ -130,17 +140,23 @@ router.get('/viewPaths', function(req, res){
       if (prev==4){
         prevc="customerD";
      }       
+     // CALCULATING THE DELIVERY CHARGES OF THE PATH
       innerObj.deliveryCharges=calculateCharges(sdis);
       innerObj.path=stext+" from "+prevc+" to "+innerObj.customer;
+      // PUSHING THE DETAILS OF THE NESTED ROUTE INTO THE ARRAY OF ROUTES
       obj.route.push(innerObj);
     }else{
+      // IF TOTAL DISTANCE EXCEEDS THE MAXIMUM LIMITS THEN SUBTRACT THE LAST DISTANCE ADDED 
       totalDistance = totalDistance - sdis;
       totalDistance = totalDistance * 0.000621;
       totalDistance = totalDistance.toFixed(1)
       obj.totalLength = totalDistance+" miles from Store"
+      // COMPLETION AND STORING THE DATA OF ONE PATH, NOT EXCEEDING THE MAXIMUM LIMIT 
       finalSol.push(obj);
+      // SETTING UP NEW PATH 
       sdis = data.rows[0].elements[cindex-1].distance.value
       stext = data.rows[0].elements[cindex-1].distance.text
+      // CHECKING THE LAST CUSTOMER/DESTINATION DETAILS BY WHICH THE MAX LIMIT WAS EXCEEDED 
       if (cindex==1){
         innerObj.customer="customerA";
       }
@@ -157,17 +173,19 @@ router.get('/viewPaths', function(req, res){
         totalLength: Number,
         route:[]
       }
+      // STORING THAT LAST CUSTOMER/DESTINATION 
       innerObj.deliveryCharges=calculateCharges(sdis);
       innerObj.path=stext+" from  store to "+innerObj.customer;
       obj.totalLength = stext+" miles from Store"
       obj.route.push(innerObj);
-      finalSol.push(obj);
-      totalDistance=stext;
-      calculations.customersRemaining--;
       totalDistance=0;
+      // AGAIN CONTINUEING THE LOOP UNTIL CALL CUSTOMERS ARE ENTERTAINED 
       continue; 
     }
-  } 
+  }
+  // PUSHING THE LAST PATH TO FINAL RESULT 
+  finalSol.push(obj); 
+  // SENDING THE DATA TO THE SERVER SIDE 
   res.send(finalSol)
 })
 
